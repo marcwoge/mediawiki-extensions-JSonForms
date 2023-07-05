@@ -1,3 +1,5 @@
+# mw-JSonForms
+
 This is a Fork of CIForms. The goal of this Fork is to optimize the Datahandling inside the MySQL-DB using JSon. JSon as Datatype 'Blob' makes it easy to handle the Fomruladata with thirdparty-tools. 
 The ability to add an Email Formfield to send the formuladata zo a custom recipient (to/CC/BCC).
 
