@@ -8,7 +8,8 @@ CREATE TABLE IF NOT EXISTS /*_*/CIForms_submissions (
   `title` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
   `data` blob NOT NULL,
   `shown` datetime DEFAULT NULL,
-  `created_at` datetime NOT NULL
+  `created_at` datetime NOT NULL,
+  `jsondata`blob NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 
 --

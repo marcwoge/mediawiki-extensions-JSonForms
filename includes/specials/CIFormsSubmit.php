@@ -145,7 +145,8 @@ class CIFormsSubmit extends SpecialPage {
 			'username' => $username,
 			'page_id' => $form_result['form_values']['pageid'],
 			'data' => json_encode( $form_result ),
-			'created_at' => date( 'Y-m-d H:i:s' )
+			'created_at' => date( 'Y-m-d H:i:s' ),
+			'jsondata' => $this->create_JSON_output($form_result['form_values'],$form_result['sections'])
 		];
 		$dbr = wfGetDB( DB_MASTER );
 		if ( !$dbr->tableExists( 'CIForms_submissions' ) ) {
@@ -657,4 +658,100 @@ class CIFormsSubmit extends SpecialPage {
 		$output .= '</div>';
 		return $output;
 	}
+
+
+	// We create a different JSON with the structure like:
+	// [section]
+	// Label = Value
+	protected function create_JSON_output( $form_values, $sections ) {
+		// Erstellen Sie ein leeres Array zum Speichern der Ergebnisse.
+		$result = array();
+	
+		// Fügen Sie den Titel zum Ergebnis hinzu, falls vorhanden.
+		if (!empty($form_values['title'])) {
+			$result['form_title'] = $form_values['title'];
+		}
+	
+		// Durchlaufen Sie jeden Abschnitt.
+		foreach ($sections as $key => $section) {
+			// Erstellen Sie ein leeres Array für die Abschnittsergebnisse.
+			$sectionResult = array();
+	
+			// Fügen Sie den Abschnittstitel hinzu, falls vorhanden.
+			if (!empty($section['title'])) {
+				$sectionResult['section_title'] = $section['title'];
+			}
+	
+			// Fügen Sie den Abschnittstyp hinzu.
+			$sectionResult['section_type'] = $section['type'];
+	
+			// Behandeln Sie verschiedene Abschnittstypen unterschiedlich.
+			switch ($section['type']) {
+				case 'inputs':
+				case 'inputs responsive':
+					// Erstellen Sie ein leeres Array für die Item.
+					$items = array();
+	
+					// Durchlaufen Sie jeden Item im Abschnitt.
+					foreach ($section['items'] as $value) {
+						// Erstellen Sie ein Array für den Item und fügen Sie das Label hinzu.
+						$item = array('label' => $value['label']);
+	
+						// Fügen Sie die Eingaben zum Item hinzu.
+						$item['inputs'] = $value['inputs'];
+	
+						// Fügen Sie den Item zur Liste der Item hinzu.
+						$items[] = $item;
+					}
+	
+					// Fügen Sie die Item zum Abschnittsergebnis hinzu.
+					$sectionResult['items'] = $items;
+					break;
+					
+				case 'multiple choice':
+					// Erstellen Sie ein leeres Array für die Item.
+					$items = array();
+	
+					// Durchlaufen Sie jeden Item im Abschnitt.
+					foreach ($section['items'] as $value) {
+						// Erstellen Sie ein Array für den Item, fügen Sie das Label und ob es ausgewählt ist hinzu.
+						$item = array('label' => $value['label'], 'selected' => $value['selected']);
+	
+						// Fügen Sie den Item zur Liste der Item hinzu.
+						$items[] = $item;
+					}
+	
+					// Fügen Sie die Items zum Abschnittsergebnis hinzu.
+					$sectionResult['items'] = $items;
+					break;
+					
+				case 'cloze test':
+					// Erstellen Sie ein leeres Array für die Items.
+					$items = array();
+	
+					// Durchlaufen Sie jedes Item im Abschnitt.
+					foreach ($section['items'] as $value) {
+						// Erstellen Sie ein Array für den Item und fügen Sie das Label hinzu.
+						$item = array('label' => $value['label']);
+	
+						// Fügen Sie die Eingaben zum Item hinzu.
+						$item['inputs'] = $value['inputs'];
+	
+						// Fügen Sie den Item zur Liste der Items hinzu.
+						$items[] = $item;
+					}
+	
+					// Fügen Sie die Item zum Abschnittsergebnis hinzu.
+					$sectionResult['items'] = $items;
+					break;
+			}
+	
+			// Fügen Sie das Abschnittsergebnis zum Gesamtergebnis hinzu.
+			$result['sections'][] = $sectionResult;
+		}
+	
+		// Codieren Sie das Ergebnis als JSON und geben Sie es zurück.
+		return json_encode($result);
+	}
+	
 }
