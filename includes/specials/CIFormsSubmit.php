@@ -765,10 +765,10 @@ class CIFormsSubmit extends SpecialPage {
 
 	/**
 	 * @param string[] $form_values
-	 * //@param array[] $sections
+	 * @param array[] $sections
 	 * @return string
 	 */
-	public function createJson( $form_values ) {
+	public function createJson( $form_values, $sections ) {
 		
 		//create Array with data -> json
 	 	$json_data = array();
@@ -779,16 +779,22 @@ class CIFormsSubmit extends SpecialPage {
 			$json_data['pageid'] = $form_values['form_values']['pageis'];
 	 	}
 		
-	// 	//sections create Array inside of json_data for sections
-	// 	$json_data['sections'] = array();
+	 	//sections create Array inside of json_data for sections
+	 	$json_data['sections'] = array();
 		
-	// 	//for every section do, Items are always inside a section
-    // 	//foreach ($form_values['sections'] as $section) {
-	// 	foreach ( $sections as $key => $section ) {
-	// 		$section_data = array();
-	// 		if ( !empty( $section['title'] ) ) {
-	// 			$section_data['title'] = $section['title'];
-	// 			}
+	 	//for every section do, Items are always inside a section
+     	foreach ($form_values['sections'] as $key => $section) {
+	 	//foreach ( $sections as $key => $section ) {
+		//foreach ( $form_values['form_values'] as $key => $section ) {	
+			$section_data = array();
+	 		if ( !empty( $section['title'] ) ) {
+	 			$section_data['title'] = $section['title'];
+	 			}
+
+				//Hier muss das Itemshandling hin!
+
+		}
+	// 		
 	// 		//Items
 	// 		$section_data['items'] = array();
 	// 		// Select Items in cases
@@ -938,8 +944,8 @@ class CIFormsSubmit extends SpecialPage {
 
 
 		//return job
-		return json_encode($form_values);
-		//return json_encode($json_data);
+		//return json_encode($form_values);
+		return json_encode($json_data);
 		//return $form_result;
 	}
 
