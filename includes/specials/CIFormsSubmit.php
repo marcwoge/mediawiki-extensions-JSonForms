@@ -44,6 +44,7 @@ class CIFormsSubmit extends SpecialPage {
 		$user = RequestContext::getMain()->getUser();
 		$absender = $user->getName();
 		$absenderEmail = $user ->getEmail();
+		$userID = $user ->getId();
 
 		// $request = $this->getRequest();
 		$this->setHeaders();
@@ -159,24 +160,29 @@ class CIFormsSubmit extends SpecialPage {
 		if ( isset( $GLOBALS['wgCIFormsSecondTable'] ) ) {
 			$additional_table = $GLOBALS['wgCIFormsSecondTable'];
 		
-			// Create Json
-			$json = $this->createJson($form_result);
-		
-			// Put Json in second Databasetable
-			$dbw = wfGetDB( DB_MASTER );
-			$dbw->insert(
-				$additional_table,
-				[
-					//'id' => $row_inserted,
-					'page_id' => $form_result['form_values']['pageid'],
-					'title' => $form_result['form_values']['title'],
-					'data' => $json,
-					'user_id' => $this->getUser()->getId(),
-					'user_name' => $this->getUser()->getName(),
-					'form_name' => $form_result['form_values']['pagename'],
-					'timestamp' => wfTimestampNow()
-				]
-			);
+			// Check if DB-Table exists
+			if ( $this->updateDBsecondtable($additional_table) ) {
+				// Create Json
+				$json = $this->createJson($form_result, $userID, $username );
+			
+				// Put Json in second Databasetable
+				$dbw = wfGetDB( DB_MASTER );
+				$dbw->insert(
+					$additional_table,
+					[
+						//'id' => $row_inserted,
+						'page_id' => $form_result['form_values']['pageid'],
+						'title' => $form_result['form_values']['title'],
+						'data' => $json,
+						'user_id' => $this->getUser()->getId(),
+						'user_name' => $this->getUser()->getName(),
+						'form_name' => $form_result['form_values']['pagename'],
+						'timestamp' => wfTimestampNow()
+					]
+				);
+
+			}
+			
 		}
 
 
@@ -768,7 +774,7 @@ class CIFormsSubmit extends SpecialPage {
 	 * @param array[] $sections
 	 * @return string
 	 */
-	public function createJson( $form_values, $sections ) {
+	public function createJson( $form_values, $userID, $username ) {
 		
 		//create Array with data -> json
 	 	$json_data = array();
@@ -776,7 +782,9 @@ class CIFormsSubmit extends SpecialPage {
 	 	if ( !empty( $form_values['form_values']['title'] ) ) {
 	 		$json_data['title'] = $form_values['form_values']['title'];
 			$json_data['pagename'] = $form_values['form_values']['pagename'];
-			$json_data['pageid'] = $form_values['form_values']['pageis'];
+			$json_data['pageid'] = $form_values['form_values']['pageid'];
+			$json_data['userID'] = $userID;
+			$json_data['username'] = $username;
 	 	}
 		
 	 	//sections create Array inside of json_data for sections
@@ -790,31 +798,79 @@ class CIFormsSubmit extends SpecialPage {
 	 		if ( !empty( $section['title'] ) ) {
 	 			$section_data['title'] = $section['title'];
 	 			}
+				//write type
+				 $section_data['type'] = $section['type'];
+				//Items
+				$section_data['items'] = array();
+				// Select Items in cases
+		 		switch ( $section['type'] ) {
+					case 'inputs':
+						// taking relevant fields from Inputs
+						foreach($section['items'] as $item) {
+							$item_data = array();
+							if (isset($item['label'])) {
+								$item_data['label'] = $item['label'];
+							}
+							if (isset($item['inputs'])) {
+								$item_data['inputs'] = $item['inputs'];
+							}
+							array_push($section_data['items'], $item_data);
+						}
+					break;
+					case 'inputs responsive':
+						// taking relevant fields from input responsive
+						foreach($section['items'] as $item) {
+							$item_data = array();
+							if (isset($item['label'])) {
+								$item_data['label'] = $item['label'];
+							}
+							if (isset($item['inputs'])) {
+								$item_data['inputs'] = $item['inputs'];
+							}
+							array_push($section_data['items'], $item_data);
+						}
+					break;
+					case 'multiple choice':
+						//extract multiple choice inputs
+						foreach($section['items'] as $item) {
+							$item_data = array();
+							// only use selected Items
+							if (isset($item['selected'])) {
+								if (isset($item['label'])) {
+									$item_data['label'] = $item['label'];
+								}
+								if (isset($item['inputs'])) {
+									$item_data['inputs'] = $item['inputs'];
+								}
+								array_push($section_data['items'], $item_data);
+							}
+						}
+					break;
+					case 'cloze test':
+						//extract Cloze inputs
+						foreach($section['items'] as $item) {
+							$item_data = array();
+							if (isset($item['label'])) {
+								$item_data['label'] = $item['label'];
+							}
+							if (isset($item['inputs'])) {
+								$item_data['inputs'] = $item['inputs'];
+							}
+							array_push($section_data['items'], $item_data);
+						}
+					break;
 
-				//Hier muss das Itemshandling hin!
+				}
+			// Add $section_data to $json_data['sections']
+			array_push($json_data['sections'], $section_data);
 
 		}
-	// 		
-	// 		//Items
-	// 		$section_data['items'] = array();
-	// 		// Select Items in cases
-	// 		switch ( $section['type'] ) {
-	// 			case 'inputs':
-	// 			// phpcs:ignore PSR2.ControlStructures.SwitchDeclaration.BodyOnNextLineCASE
-	// 			case 'inputs responsive':
-	// 				foreach ($section['items'] as $item) {
-	// 					if ( $section['type'] == 'inputs responsive' ) {
-	// 						preg_match( "/^\s*([^\[\]]+)\s*(.+)\s*$/", $value['label'], $match );
-	// 						$item['labe'] = $match[1];
-	// 						//$item['labe'] = $match[2];
-	// 					}
-						
-	// 					}
+
 				
 				
 	// 	//Possible Datastructure 		
 				
-	// 					$item_data = array();
+	// 			$item_data = array();
 	// 			$item_data['type'] = $item['type'];
 	// 			$item_data['label'] = $item['label'];
 				
@@ -949,5 +1005,32 @@ class CIFormsSubmit extends SpecialPage {
 		//return $form_result;
 	}
 
+	protected function updateDBsecondtable( $tablename) {
+		// get database connection
+		$dbw = wfGetDB( DB_MASTER );
+
+		 // check if table exists
+		 if( !$dbw->tableExists( $tablename ) ) {
+			// table does not exist, create it
+			$createResult = $dbw->query( "CREATE TABLE $tablename (
+				id INT AUTO_INCREMENT PRIMARY KEY,
+				page_id INT,
+				title VARCHAR(255),
+				data BLOB,
+				user_id varchar(45),
+				user_name VARCHAR(255),
+				form_name VARCHAR(255),
+				timestamp datetime
+			)" );
+			// if table creation failed, return false
+			if(!$createResult ) {
+				wfLogWarning( "Failed to create table second table for CIForms: $additional_table" );
+				return false;
+			}
+		}
+		// if table exists or was created successfully, return true
+		wfDebugLog( 'DBTable', "Table $additional_table created or already exists" );
+		return true;
+	}
 
 }
