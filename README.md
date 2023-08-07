@@ -12,3 +12,14 @@ All forms include automatic validation, are optionally protected by the latest v
 
 Please check https://www.mediawiki.org/wiki/Extension:CIForms for the official documentation.
 
+# Form-Data
+The Formdata is stored in a custom Json. It Contains Some Formular data like Title and Username submitting the form. 
+From every section the name is taken and form the items the labels and the value. In case of multiple choise only selected items are sotored. 
+This makes it much easier to use CIForms with external tools like elasticSearch. 
+
+# Email to User submitting the form
+If a user is logged on and the profile provides an emailadresse the form is mailed to the user too.
+
+# Form Data in the Email body
+The submittet Form generates a pdf. This sound stupid, because you have to open it bevore you can see whats inside and if its that what you are looking for. 
+I took the content of the pdf to the email body (not very well formated, because CSS is missing).
