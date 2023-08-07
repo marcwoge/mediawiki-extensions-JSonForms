@@ -12,6 +12,12 @@ All forms include automatic validation, are optionally protected by the latest v
 
 Please check https://www.mediawiki.org/wiki/Extension:CIForms for the official documentation.
 
+# Install
+CIForms should already been installed. 
+actually you only need to use the /includes/specials/CIFormsSubmit.php and replace it.
+Update the localSettings.php of your mediawikie with the global Variable:
+$wgCIFormsSecondTable = 'CIForms_Name_Of_second_Table';
+
 # Roadmap
 ## Form-Data
 The Formdata is stored in a custom Json. It Contains Some Formular data like Title and Username submitting the form. 
