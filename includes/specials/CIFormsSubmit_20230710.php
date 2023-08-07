@@ -40,12 +40,6 @@ class CIFormsSubmit extends SpecialPage {
 	 * @return void
 	 */
 	public function execute( $par ) {
-		//These Lines Added für Form Userinformations...
-		$user = RequestContext::getMain()->getUser();
-		$absender = $user->getName();
-		$absenderEmail = $user ->getEmail();
-		$userID = $user ->getId();
-
 		// $request = $this->getRequest();
 		$this->setHeaders();
 		$this->outputHeader();
@@ -60,7 +54,6 @@ class CIFormsSubmit extends SpecialPage {
 		global $wgPasswordSenderName;
 		global $wgPasswordSender;
 		global $wgSitename;
-		global $wgCIFormsSecondTable;
 		if ( empty( $wgCIFormsSenderEmail ) ) {
 			$senderEmail = $wgPasswordSender;
 			$senderName = $wgPasswordSenderName;
@@ -110,20 +103,7 @@ class CIFormsSubmit extends SpecialPage {
 			$form_result['form_values']['title'],
 			Title::newFromText( $form_result['form_values']['pagename'] )->getFullURL()
 		);
-		// grap some Userinformation like Name and Email
-		// try {echo {$user->getEmail()}} catch (Exception $e ) {"no Userinformation avalable"} 
-		//if ($user->isAnon()) {
-		//	$absender = "einem nicht angemeldeten Benutzer gesendet.";
-		//} else {
-		//	$absender = "Benutzername: " . $user->getName();
-		//	if ($user->getEmail() !== '') {
-		//		$absender .= " mit der E-Mail-Adresse: " . $user->getEmail() . " gesendet.";
-		//	} else {
-		//		$absender .= " ohne Emailadresse gesendet";
-		//	}
-		//}
-
-		$message_body .= "<br /><br /><br /> " . $this->createMailerText( $form_result, $username, date( 'Y-m-d H:i:s' ) ) . "<br /><br /><br /> " . $this->msg( 'ci-forms-credits' ); //This Line is edited with additional Userinformation in Try mode
+		$message_body .= "<br /><br /><br />" . $this->msg( 'ci-forms-credits' );
 		$attachment = $this->createPDF( $form_result, $username, date( 'Y-m-d H:i:s' ) );
 		// https://github.com/PHPMailer/PHPMailer/blob/master/examples/sendmail.phps
 		// Create a new PHPMailer instance
@@ -135,9 +115,6 @@ class CIFormsSubmit extends SpecialPage {
 			$mail->setFrom( ( !empty( $senderName ) ? $senderName . ' <' . $senderEmail . '>' : $senderEmail ) );
 			foreach ( $submit_valid as $key => $email ) {
 				$mail->addAddress( $email );
-			}
-			if ($user->getEmail() !== '') { //This line was added to send an email to the submitter
-				$mail->addAddress( $user->getEmail() );
 			}
 			$mail->Subject = $subject;
 			$mail->msgHTML( $message_body );
@@ -152,43 +129,6 @@ class CIFormsSubmit extends SpecialPage {
 			// echo "Mailer Error: " . $mail->ErrorInfo;
 			$result_success = false;
 		}
-
-		// Fill in a second SQL Table with cleaner Json and only filled/submitted fields
-		// With a Tablename defined in $wgCIFormsSecondTable
-
-			//Check if $wgCIFormsSecondTable is set
-		if ( isset( $GLOBALS['wgCIFormsSecondTable'] ) ) {
-			$additional_table = $GLOBALS['wgCIFormsSecondTable'];
-		
-			// Check if DB-Table exists
-			if ( $this->updateDBsecondtable($additional_table) ) {
-				// Create Json
-				$json = $this->createJson($form_result, $userID, $username );
-			
-				// Put Json in second Databasetable
-				$dbw = wfGetDB( DB_MASTER );
-				$dbw->insert(
-					$additional_table,
-					[
-						//'id' => $row_inserted,
-						'page_id' => $form_result['form_values']['pageid'],
-						'title' => $form_result['form_values']['title'],
-						'data' => $json,
-						'user_id' => $this->getUser()->getId(),
-						'user_name' => $this->getUser()->getName(),
-						'form_name' => $form_result['form_values']['pagename'],
-						'timestamp' => wfTimestampNow()
-					]
-				);
-
-			}
-			
-		}
-
-
-
-
-		//END of additional CODE for second SQL Table
 		$this->exit( $out, $this->exit_message( $form_result, $row_inserted, true, $result_success, $success ), $form_result['form_values'], $success );
 	}
 
@@ -205,7 +145,8 @@ class CIFormsSubmit extends SpecialPage {
 			'username' => $username,
 			'page_id' => $form_result['form_values']['pageid'],
 			'data' => json_encode( $form_result ),
-			'created_at' => date( 'Y-m-d H:i:s' )
+			'created_at' => date( 'Y-m-d H:i:s' ),
+			'jsondata' => $this->create_JSON_output($form_result['form_values'],$form_result['sections'])
 		];
 		$dbr = wfGetDB( DB_MASTER );
 		if ( !$dbr->tableExists( 'CIForms_submissions' ) ) {
@@ -425,57 +366,6 @@ class CIFormsSubmit extends SpecialPage {
 		// $dompdf->stream();
 		$file = $dompdf->output();
 		return $file;
-	}
-
-	public function createMailerText( $form_result, $username, $datetime ) {
-		$css_path = __DIR__ . '/../../resources/style.css';
-		$form_output_html = '';
-		$form_output_html .= '<html><head>';
-		$form_output_html .= '<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>';
-		// $form_output_html .= '<link rel="stylesheet" type="text/css" href="' . $css_url . '" />';
-		$form_output_html .= '<style>';
-		$stylesheet = file_get_contents( $css_path );
-		// ***ensure there aren't spaces between brackets otherwise
-		// Dompdf will not work
-		$stylesheet = preg_replace( '/\[\s*(.+?)\s*\]/', "[$1]", $stylesheet );
-		// see here, Dompdf does not support bounding-box
-		// https://github.com/dompdf/dompdf/issues/669
-		$stylesheet = preg_replace( '/(?<!\-)width:\s*100%/', "max-width:100%", $stylesheet );
-		$form_output_html .= $stylesheet;
-		// https://github.com/dompdf/dompdf/issues/708
-		$form_output_html .= '.ci_form ol li::before, .ci_form ul li::before { content: ""; }';
-		$form_output_html .= '</style>';
-		$form_output_html .= '<head><body>';
-		$form_output_html .= $this->create_output(
-			$form_result['form_values'],
-			$form_result['sections']
-		);
-		// create table with
-		// wiki name, page title, username, date time
-		global $wgSitename;
-		$form_output_html .= '<br /><br />';
-		$form_output_html .= '<table border="1" style="width:100%;border: 1px solid #aaa;border-collapse:collapse;border-spacing:0;">';
-		$form_output_html .= "<tr><td style=\"font-weight:bold\">wiki</td><td>$wgSitename</td></tr>";
-		$form_output_html .= "<tr><td style=\"font-weight:bold\">page</td><td><a href=\"" . Title::newFromText( $form_result['form_values']['pagename'] )->getFullURL() . "\">{$form_result['form_values']['pagename']}</a></td></tr>";
-		$form_output_html .= "<tr><td style=\"font-weight:bold\">username</td><td>$username</td></tr>";
-		$form_output_html .= "<tr><td style=\"font-weight:bold\">date</td><td>$datetime</td></tr>";
-		$form_output_html .= "</table>";
-		$form_output_html .= '<br /><br /><br /><br /><br />';
-		//$form_output_html .= $this->msg( 'ci-forms-credits' );
-		$form_output_html .= '</body></html>';
-		// create pdf
-		// https://github.com/dompdf/dompdf
-		// instantiate and use the dompdf class
-		//$dompdf = new Dompdf();
-		//$dompdf->loadHtml( $form_output_html );
-		// (Optional) Setup the paper size and orientation
-		//$dompdf->setPaper( 'A4' );
-		// Render the HTML as PDF
-		//$dompdf->render();
-		// Output the generated PDF to Browser
-		// $dompdf->stream();
-		//$file = $dompdf->output();
-		return $form_output_html;
 	}
 
 	/**
@@ -769,268 +659,99 @@ class CIFormsSubmit extends SpecialPage {
 		return $output;
 	}
 
-	/**
-	 * @param string[] $form_values
-	 * @param array[] $sections
-	 * @return string
-	 */
-	public function createJson( $form_values, $userID, $username ) {
-		
-		//create Array with data -> json
-	 	$json_data = array();
-	 	//Title
-	 	if ( !empty( $form_values['form_values']['title'] ) ) {
-	 		$json_data['title'] = $form_values['form_values']['title'];
-			$json_data['pagename'] = $form_values['form_values']['pagename'];
-			$json_data['pageid'] = $form_values['form_values']['pageid'];
-			$json_data['userID'] = $userID;
-			$json_data['username'] = $username;
-	 	}
-		
-	 	//sections create Array inside of json_data for sections
-	 	$json_data['sections'] = array();
-		
-	 	//for every section do, Items are always inside a section
-     	foreach ($form_values['sections'] as $key => $section) {
-	 	//foreach ( $sections as $key => $section ) {
-		//foreach ( $form_values['form_values'] as $key => $section ) {	
-			$section_data = array();
-	 		if ( !empty( $section['title'] ) ) {
-	 			$section_data['title'] = $section['title'];
-	 			}
-				//write type
-				 $section_data['type'] = $section['type'];
-				//Items
-				$section_data['items'] = array();
-				// Select Items in cases
-		 		switch ( $section['type'] ) {
-					case 'inputs':
-						// taking relevant fields from Inputs
-						foreach($section['items'] as $item) {
-							$item_data = array();
-							if (isset($item['label'])) {
-								$item_data['label'] = $item['label'];
-							}
-							if (isset($item['inputs'])) {
-								$item_data['inputs'] = $item['inputs'];
-							}
-							array_push($section_data['items'], $item_data);
-						}
-					break;
-					case 'inputs responsive':
-						// taking relevant fields from input responsive
-						foreach($section['items'] as $item) {
-							$item_data = array();
-							if (isset($item['label'])) {
-								$item_data['label'] = $item['label'];
-							}
-							if (isset($item['inputs'])) {
-								$item_data['inputs'] = $item['inputs'];
-							}
-							array_push($section_data['items'], $item_data);
-						}
-					break;
-					case 'multiple choice':
-						//extract multiple choice inputs
-						foreach($section['items'] as $item) {
-							$item_data = array();
-							// only use selected Items
-							if (isset($item['selected'])) {
-								if (isset($item['label'])) {
-									$item_data['label'] = $item['label'];
-								}
-								if (isset($item['inputs'])) {
-									$item_data['inputs'] = $item['inputs'];
-								}
-								array_push($section_data['items'], $item_data);
-							}
-						}
-					break;
-					case 'cloze test':
-						//extract Cloze inputs
-						foreach($section['items'] as $item) {
-							$item_data = array();
-							if (isset($item['label'])) {
-								$item_data['label'] = $item['label'];
-							}
-							if (isset($item['inputs'])) {
-								$item_data['inputs'] = $item['inputs'];
-							}
-							array_push($section_data['items'], $item_data);
-						}
-					break;
 
-				}
-			// Add $section_data to $json_data['sections']
-			array_push($json_data['sections'], $section_data);
-
+	// We create a different JSON with the structure like:
+	// [section]
+	// Label = Value
+	protected function create_JSON_output( $form_values, $sections ) {
+		// Erstellen Sie ein leeres Array zum Speichern der Ergebnisse.
+		$result = array();
+	
+		// Fügen Sie den Titel zum Ergebnis hinzu, falls vorhanden.
+		if (!empty($form_values['title'])) {
+			$result['form_title'] = $form_values['title'];
 		}
-
-				
-				
-	// 	//Possible Datastructure 		
-				
-	// 			$item_data = array();
-	// 			$item_data['type'] = $item['type'];
-	// 			$item_data['label'] = $item['label'];
-				
-	// 			// Sie müssen vielleicht anpassen, wie Sie den Wert abrufen, basierend auf der genauen Struktur Ihrer Daten
-	// 			$item_data['value'] = isset($item['inputs']) && count($item['inputs']) > 0 ? $item['inputs'][0] : null;
-				
-	// 			$section_data['items'][] = $item_data;
-	// 		}
-    //    		$json_data['sections'][] = $section_data;
-    // 	}
-	// }
-
-
-
-
-
-
-
-
-
-	// //This is from create_output
-	// 					preg_match_all( '/([^\[\]]*)\[\s*([^\[\]]*)\s*\]\s*(\*)?/', $value['label'], $match_all );
-	// 					$inputs_per_row = count( $match_all[0] );
-	// 					$label_exists = !empty( implode( '', $match_all[1] ) );
-	// 					$i = 0;
-	// 					$output .= preg_replace_callback( '/([^\[\]]*)\[\s*([^\[\]]*)\s*\]\s*(\*)?/',
-	// 						static function ( $matches ) use ( $section, $value, &$i, $inputs_per_row, $label_exists ) {
-	// 							$replacement = '';
-	// 							$replacement .= '<div class="ci_form_section_inputs_inner_col" style="float:left;width:' . ( 100 / $inputs_per_row ) . '%">';
-	// 							list( $input_type, $placeholder, $input_options ) =
-	// 								CIForms::ci_form_parse_input_symbol( $matches[2] ) + [ null, null, null ];
-	// 							$required =
-	// 								( !empty( $matches[3] ) ? ' data-required="1" required' : '' );
-	// 							// @phan-suppress-next-line PhanRedundantCondition
-	// 							if ( $required && !empty( $placeholder ) ) {
-	// 								$placeholder .= ' *';
-	// 							}
-	// 							if ( $section['type'] != 'inputs responsive' ) {
-	// 								$label = trim( $matches[1] );
-	// 								if ( !empty( $label ) ) {
-	// 									$replacement .= '<label>' . $label .
-	// 										( $required && empty( $placeholder ) ? ' *' : '' ) . '</label>';
-	// 								// @see https://www.mediawiki.org/wiki/Topic:X0ywugj89ow4bzbm
-	// 								} elseif ( !empty( $placeholder ) ) {
-	// 									$replacement .= '<label>' . $placeholder . '</label>';
-	// 								} elseif ( $label_exists ) {
-	// 									// Zero-width space
-	// 									$replacement .= '<label>&#8203;</label>';
-	// 								}
-	// 							}
-	// 							$replacement .= '<span class="input">' .
-	// 								htmlspecialchars( $value['inputs'][$i] ) . '</span>';
-	// 							$replacement .= '</div>';
-	// 							$i++;
-	// 							return $replacement;
-	// 						}, $value['label'] ); // preg_replace_callback
-	// 					if ( $section['type'] == 'inputs responsive' ) {
-	// 						$output .= '</div>';
-	// 					}
-	// 					$output .= '</div>';
-	// 				}
-	// 				break;
-	// 			case 'multiple choice':
-	// 				$list_type_ordered = in_array( $section['list-style'], CIForms::$ordered_styles );
-	// 				// --list_style_type
-	// 				$output .= '<' . ( !$list_type_ordered ? 'ul' : 'ol' ) . ' class="ci_form_section_multiple_choice_list" style="list-style:' . $section['list-style'] . '">';
-	// 				foreach ( $section['items'] as $value ) {
-	// 					$label = $value['label'];
-	// 					$ii = -1;
-	// 					$output .= '<li>';
-	// 					// @see https://stackoverflow.com/questions/35200674/special-character-not-showing-in-html2pdf
-	// 					$output .= '<span style="font-family:DejaVu Sans">' .
-	// 						( $value['selected'] ? '&#9745;' : '&#9744;' ) . '</span>&nbsp;';
-	// 					$label =
-	// 						preg_replace_callback( '/\[([^\[\]]*)\]\s*\*?/',
-	// 							static function ( $matches ) use ( $value, &$ii ) {
-	// 								$ii++;
-	// 								return '<span class="input">' .
-	// 									htmlspecialchars( $value['inputs'][$ii] ) . '</span>';
-	// 							}, $label );
-	// 					$output .= $label;
-	// 					$output .= '</li>';
-	// 				}
-	// 				$output .= ( $list_type_ordered ? '</ol>' : '</ul>' );
-	// 				break;
-	// 			case 'cloze test':
-	// 				$output .= '<ol class="ci_form_section_cloze_test_list">';
-	// 				$list_type_ordered = in_array( $section['list-style'], CIForms::$ordered_styles );
-	// 				// --list_style_type
-	// 				$output .= '<' . ( !$list_type_ordered ? 'ul' : 'ol' ) . ' class="ci_form_section_cloze_test_list" style="list-style:' . $section['list-style'] . '">';
-	// 				foreach ( $section['items'] as $value ) {
-	// 					$label = trim( $value['label'] );
-	// 					$example = ( $label[0] == '*' );
-	// 					if ( $example ) {
-	// 						$label = trim( substr( $label, 1 ) );
-	// 						// simply ignore the example line since
-	// 						// the numeration isn't handled correctly by
-	// 						// Dompdf using css counter-increment
-	// 						continue;
-	// 					}
-	// 					$output .= '<li class="ci_form_section_cloze_test_list_question' .
-	// 						( $example ? '_example' : '' ) . '">';
-	// 					$i = 0;
-	// 					$output .= preg_replace_callback( '/\[\s*([^\[\]]*)\s*\]\s*\*?/',
-	// 						static function ( $matches ) use ( &$i, $value, $section, $example ) {
-	// 								$a = $b = null;
-	// 							if ( !empty( $matches[1] ) ) {
-	// 								list( $a, $b ) = preg_split( "/\s*=\s*/", $matches[1] ) + [ null, null ];
-	// 							}
-	// 							$replacement_inner = '';
-	// 							if ( $a || $b ) {
-	// 								$replacement_inner .= '<span class="ci_form_section_cloze_test_list_question_answered">' .
-	// 									( $b ?: $a ) .
-	// 									'</span> ';
-	// 							} else {
-	// 								// '_value' is appended for easy validation
-	// 								$replacement_inner .= htmlspecialchars( $value['inputs'][$i] );
-	// 							}
-	// 							$i++;
-	// 							return $replacement_inner;
-	// 						}, $label );
-	// 				}
-	// 				break;
-	// 		}
-	// 	}
-
-
-
-		//return job
-		//return json_encode($form_values);
-		return json_encode($json_data);
-		//return $form_result;
-	}
-
-	protected function updateDBsecondtable( $tablename) {
-		// get database connection
-		$dbw = wfGetDB( DB_MASTER );
-
-		 // check if table exists
-		 if( !$dbw->tableExists( $tablename ) ) {
-			// table does not exist, create it
-			$createResult = $dbw->query( "CREATE TABLE $tablename (
-				id INT AUTO_INCREMENT PRIMARY KEY,
-				page_id INT,
-				title VARCHAR(255),
-				data BLOB,
-				user_id varchar(45),
-				user_name VARCHAR(255),
-				form_name VARCHAR(255),
-				timestamp datetime
-			)" );
-			// if table creation failed, return false
-			if(!$createResult ) {
-				wfLogWarning( "Failed to create table second table for CIForms: $additional_table" );
-				return false;
+	
+		// Durchlaufen Sie jeden Abschnitt.
+		foreach ($sections as $key => $section) {
+			// Erstellen Sie ein leeres Array für die Abschnittsergebnisse.
+			$sectionResult = array();
+	
+			// Fügen Sie den Abschnittstitel hinzu, falls vorhanden.
+			if (!empty($section['title'])) {
+				$sectionResult['section_title'] = $section['title'];
 			}
+	
+			// Fügen Sie den Abschnittstyp hinzu.
+			$sectionResult['section_type'] = $section['type'];
+	
+			// Behandeln Sie verschiedene Abschnittstypen unterschiedlich.
+			switch ($section['type']) {
+				case 'inputs':
+				case 'inputs responsive':
+					// Erstellen Sie ein leeres Array für die Item.
+					$items = array();
+	
+					// Durchlaufen Sie jeden Item im Abschnitt.
+					foreach ($section['items'] as $value) {
+						// Erstellen Sie ein Array für den Item und fügen Sie das Label hinzu.
+						$item = array('label' => $value['label']);
+	
+						// Fügen Sie die Eingaben zum Item hinzu.
+						$item['inputs'] = $value['inputs'];
+	
+						// Fügen Sie den Item zur Liste der Item hinzu.
+						$items[] = $item;
+					}
+	
+					// Fügen Sie die Item zum Abschnittsergebnis hinzu.
+					$sectionResult['items'] = $items;
+					break;
+					
+				case 'multiple choice':
+					// Erstellen Sie ein leeres Array für die Item.
+					$items = array();
+	
+					// Durchlaufen Sie jeden Item im Abschnitt.
+					foreach ($section['items'] as $value) {
+						// Erstellen Sie ein Array für den Item, fügen Sie das Label und ob es ausgewählt ist hinzu.
+						$item = array('label' => $value['label'], 'selected' => $value['selected']);
+	
+						// Fügen Sie den Item zur Liste der Item hinzu.
+						$items[] = $item;
+					}
+	
+					// Fügen Sie die Items zum Abschnittsergebnis hinzu.
+					$sectionResult['items'] = $items;
+					break;
+					
+				case 'cloze test':
+					// Erstellen Sie ein leeres Array für die Items.
+					$items = array();
+	
+					// Durchlaufen Sie jedes Item im Abschnitt.
+					foreach ($section['items'] as $value) {
+						// Erstellen Sie ein Array für den Item und fügen Sie das Label hinzu.
+						$item = array('label' => $value['label']);
+	
+						// Fügen Sie die Eingaben zum Item hinzu.
+						$item['inputs'] = $value['inputs'];
+	
+						// Fügen Sie den Item zur Liste der Items hinzu.
+						$items[] = $item;
+					}
+	
+					// Fügen Sie die Item zum Abschnittsergebnis hinzu.
+					$sectionResult['items'] = $items;
+					break;
+			}
+	
+			// Fügen Sie das Abschnittsergebnis zum Gesamtergebnis hinzu.
+			$result['sections'][] = $sectionResult;
 		}
-		// if table exists or was created successfully, return true
-		wfDebugLog( 'DBTable', "Table $additional_table created or already exists" );
-		return true;
+	
+		// Codieren Sie das Ergebnis als JSON und geben Sie es zurück.
+		return json_encode($result);
 	}
-
+	
 }
