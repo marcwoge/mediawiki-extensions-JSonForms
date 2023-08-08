@@ -110,20 +110,8 @@ class CIFormsSubmit extends SpecialPage {
 			$form_result['form_values']['title'],
 			Title::newFromText( $form_result['form_values']['pagename'] )->getFullURL()
 		);
-		// grap some Userinformation like Name and Email
-		// try {echo {$user->getEmail()}} catch (Exception $e ) {"no Userinformation avalable"} 
-		//if ($user->isAnon()) {
-		//	$absender = "einem nicht angemeldeten Benutzer gesendet.";
-		//} else {
-		//	$absender = "Benutzername: " . $user->getName();
-		//	if ($user->getEmail() !== '') {
-		//		$absender .= " mit der E-Mail-Adresse: " . $user->getEmail() . " gesendet.";
-		//	} else {
-		//		$absender .= " ohne Emailadresse gesendet";
-		//	}
-		//}
 
-		$message_body .= "<br /><br /><br /> " . $this->createMailerText( $form_result, $username, date( 'Y-m-d H:i:s' ) ) . "<br /><br /><br /> " . $this->msg( 'ci-forms-credits' ); //This Line is edited with additional Userinformation in Try mode
+		$message_body .= "<br /><br /><br /> " . $this->createMailerText( $form_result, $username, date( 'Y-m-d H:i:s' ) ) . "<br /><br /><br /> " . $this->msg( 'ci-forms-credits' ); //This Line is edited with additional Userinformation
 		$attachment = $this->createPDF( $form_result, $username, date( 'Y-m-d H:i:s' ) );
 		// https://github.com/PHPMailer/PHPMailer/blob/master/examples/sendmail.phps
 		// Create a new PHPMailer instance
@@ -153,7 +141,7 @@ class CIFormsSubmit extends SpecialPage {
 			$result_success = false;
 		}
 
-		// Fill in a second SQL Table with cleaner Json and only filled/submitted fields
+		// Fill in a second SQL Table with cleaner Json -> only filled/submitted fields
 		// With a Tablename defined in $wgCIFormsSecondTable
 
 			//Check if $wgCIFormsSecondTable is set
@@ -184,10 +172,6 @@ class CIFormsSubmit extends SpecialPage {
 			}
 			
 		}
-
-
-
-
 		//END of additional CODE for second SQL Table
 		$this->exit( $out, $this->exit_message( $form_result, $row_inserted, true, $result_success, $success ), $form_result['form_values'], $success );
 	}
