@@ -111,7 +111,8 @@ class CIFormsSubmit extends SpecialPage {
 			Title::newFromText( $form_result['form_values']['pagename'] )->getFullURL()
 		);
 
-		$message_body .= "<br /><br /><br /> " . $this->createMailerText( $form_result, $username, date( 'Y-m-d H:i:s' ) ) . "<br /><br /><br /> " . $this->msg( 'ci-forms-credits' ); //This Line is edited with additional Userinformation
+
+		$message_body .= "<br /><br /><br /> " . $this->createMailerText( $form_result, $username, date( 'Y-m-d H:i:s' ) ) . "<br /><br /><br /> " . $this->msg( 'ci-forms-credits' ); //This Line is edited with additional Userinformation in Try mode
 		$attachment = $this->createPDF( $form_result, $username, date( 'Y-m-d H:i:s' ) );
 		// https://github.com/PHPMailer/PHPMailer/blob/master/examples/sendmail.phps
 		// Create a new PHPMailer instance
@@ -141,7 +142,7 @@ class CIFormsSubmit extends SpecialPage {
 			$result_success = false;
 		}
 
-		// Fill in a second SQL Table with cleaner Json -> only filled/submitted fields
+		// Fill in a second SQL Table with cleaner Json and only filled/submitted fields
 		// With a Tablename defined in $wgCIFormsSecondTable
 
 			//Check if $wgCIFormsSecondTable is set
@@ -849,6 +850,7 @@ class CIFormsSubmit extends SpecialPage {
 			array_push($json_data['sections'], $section_data);
 
 		}
+
 		return json_encode($json_data);
 	}
 
@@ -863,7 +865,7 @@ class CIFormsSubmit extends SpecialPage {
 				id INT AUTO_INCREMENT PRIMARY KEY,
 				page_id INT,
 				title VARCHAR(255),
-				data BLOB,
+				data MEDIUMTEXT,
 				user_id varchar(45),
 				user_name VARCHAR(255),
 				form_name VARCHAR(255),
