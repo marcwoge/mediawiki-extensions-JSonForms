@@ -786,7 +786,7 @@ class CIFormsSubmit extends SpecialPage {
 			$json_data['pageid'] = $form_values['form_values']['pageid'];
 			$json_data['userID'] = $userID;
 			$json_data['username'] = $username;
-			$json_data['timestamp'] = date('c');  // 'c' ISO-8601-Format
+			$json_data['created'] = date('c');  // 'c' ISO-8601-Format
 
 		}
 	
@@ -851,39 +851,6 @@ class CIFormsSubmit extends SpecialPage {
 						$json_data[$key] = $item_inputs;
 					}
 					break;
-			}
-		}
-		
-		return json_encode($json_data);
-	}
-
-	public function createFlatJson($form_values, $userID, $username) {
-		$json_data = array();
-		
-		// Adding user information and title to the top-level array
-		if (!empty($form_values['form_values']['title'])) {
-			$json_data['title'] = $form_values['form_values']['title'];
-			$json_data['pagename'] = $form_values['form_values']['pagename'];
-			$json_data['pageid'] = $form_values['form_values']['pageid'];
-			$json_data['userID'] = $userID;
-			$json_data['username'] = $username;
-		}
-	
-		// Loop through each section
-		foreach ($form_values['sections'] as $section) {
-			$section_title = $section['title'] ?? '';  // Fallback to empty string if not set
-			$section_type = $section['type'] ?? '';    // Fallback to empty string if not set
-	
-			// Loop through each item in the section
-			foreach ($section['items'] as $item) {
-				$item_label = $item['label'] ?? '';  // Fallback to empty string if not set
-				$item_inputs = $item['inputs'] ?? ''; // Fallback to empty string if not set
-				
-				// Create a unique key for this section and item
-				$key = "{$section_title}_{$item_label}";
-				
-				// Store the item's inputs using the unique key
-				$json_data[$key] = $item_inputs;
 			}
 		}
 		
