@@ -776,244 +776,118 @@ class CIFormsSubmit extends SpecialPage {
 	 */
 	public function createJson( $form_values, $userID, $username ) {
 		
-		//create Array with data -> json
-	 	$json_data = array();
-	 	//Title
-	 	if ( !empty( $form_values['form_values']['title'] ) ) {
-	 		$json_data['title'] = $form_values['form_values']['title'];
+		// Create array with data
+		$json_data = array();
+    
+		// Adding user information and title to the top-level array
+		if (!empty($form_values['form_values']['title'])) {
+			$json_data['title'] = $form_values['form_values']['title'];
 			$json_data['pagename'] = $form_values['form_values']['pagename'];
 			$json_data['pageid'] = $form_values['form_values']['pageid'];
 			$json_data['userID'] = $userID;
 			$json_data['username'] = $username;
-	 	}
-		
-	 	//sections create Array inside of json_data for sections
-	 	$json_data['sections'] = array();
-		
-	 	//for every section do, Items are always inside a section
-     	foreach ($form_values['sections'] as $key => $section) {
-	 	//foreach ( $sections as $key => $section ) {
-		//foreach ( $form_values['form_values'] as $key => $section ) {	
-			$section_data = array();
-	 		if ( !empty( $section['title'] ) ) {
-	 			$section_data['title'] = $section['title'];
-	 			}
-				//write type
-				 $section_data['type'] = $section['type'];
-				//Items
-				$section_data['items'] = array();
-				// Select Items in cases
-				switch ( $section['type'] ) {
-					case 'inputs':
-						// taking relevant fields from Inputs
-						foreach($section['items'] as $item) {
-							if (isset($item['label']) && isset($item['inputs'])) {
-								// Using label as the key and inputs as the value
-								$section_data['items'][$item['label']] = $item['inputs'];
-							}
-						}
-					break;
-		 		// switch ( $section['type'] ) {
-				// 	case 'inputs':
-				// 		// taking relevant fields from Inputs
-				// 		foreach($section['items'] as $item) {
-				// 			$item_data = array();
-				// 			if (isset($item['label'])) {
-				// 				$item_data['label'] = $item['label'];
-				// 			}
-				// 			if (isset($item['inputs'])) {
-				// 				$item_data['inputs'] = $item['inputs'];
-				// 			}
-				// 			array_push($section_data['items'], $item_data);
-				// 		}
-				// 	break;
-					case 'inputs responsive':
-						// taking relevant fields from input responsive
-						foreach($section['items'] as $item) {
-							$item_data = array();
-							if (isset($item['label'])) {
-								$item_data['label'] = $item['label'];
-							}
-							if (isset($item['inputs'])) {
-								$item_data['inputs'] = $item['inputs'];
-							}
-							array_push($section_data['items'], $item_data);
-						}
-					break;
-					case 'multiple choice':
-						//extract multiple choice inputs
-						foreach($section['items'] as $item) {
-							$item_data = array();
-							// only use selected Items
-							if (isset($item['selected'])) {
-								if (isset($item['label'])) {
-									$item_data['label'] = $item['label'];
-								}
-								if (isset($item['inputs'])) {
-									$item_data['inputs'] = $item['inputs'];
-								}
-								array_push($section_data['items'], $item_data);
-							}
-						}
-					break;
-					case 'cloze test':
-						//extract Cloze inputs
-						foreach($section['items'] as $item) {
-							$item_data = array();
-							if (isset($item['label'])) {
-								$item_data['label'] = $item['label'];
-							}
-							if (isset($item['inputs'])) {
-								$item_data['inputs'] = $item['inputs'];
-							}
-							array_push($section_data['items'], $item_data);
-						}
-					break;
-
-				}
-			// Add $section_data to $json_data['sections']
-			array_push($json_data['sections'], $section_data);
-
 		}
-
-				
-				
-	// 	//Possible Datastructure 		
-				
-	// 			$item_data = array();
-	// 			$item_data['type'] = $item['type'];
-	// 			$item_data['label'] = $item['label'];
-				
-	// 			// Sie müssen vielleicht anpassen, wie Sie den Wert abrufen, basierend auf der genauen Struktur Ihrer Daten
-	// 			$item_data['value'] = isset($item['inputs']) && count($item['inputs']) > 0 ? $item['inputs'][0] : null;
-				
-	// 			$section_data['items'][] = $item_data;
-	// 		}
-    //    		$json_data['sections'][] = $section_data;
-    // 	}
-	// }
-
-
-
-
-
-
-
-
-
-	// //This is from create_output
-	// 					preg_match_all( '/([^\[\]]*)\[\s*([^\[\]]*)\s*\]\s*(\*)?/', $value['label'], $match_all );
-	// 					$inputs_per_row = count( $match_all[0] );
-	// 					$label_exists = !empty( implode( '', $match_all[1] ) );
-	// 					$i = 0;
-	// 					$output .= preg_replace_callback( '/([^\[\]]*)\[\s*([^\[\]]*)\s*\]\s*(\*)?/',
-	// 						static function ( $matches ) use ( $section, $value, &$i, $inputs_per_row, $label_exists ) {
-	// 							$replacement = '';
-	// 							$replacement .= '<div class="ci_form_section_inputs_inner_col" style="float:left;width:' . ( 100 / $inputs_per_row ) . '%">';
-	// 							list( $input_type, $placeholder, $input_options ) =
-	// 								CIForms::ci_form_parse_input_symbol( $matches[2] ) + [ null, null, null ];
-	// 							$required =
-	// 								( !empty( $matches[3] ) ? ' data-required="1" required' : '' );
-	// 							// @phan-suppress-next-line PhanRedundantCondition
-	// 							if ( $required && !empty( $placeholder ) ) {
-	// 								$placeholder .= ' *';
-	// 							}
-	// 							if ( $section['type'] != 'inputs responsive' ) {
-	// 								$label = trim( $matches[1] );
-	// 								if ( !empty( $label ) ) {
-	// 									$replacement .= '<label>' . $label .
-	// 										( $required && empty( $placeholder ) ? ' *' : '' ) . '</label>';
-	// 								// @see https://www.mediawiki.org/wiki/Topic:X0ywugj89ow4bzbm
-	// 								} elseif ( !empty( $placeholder ) ) {
-	// 									$replacement .= '<label>' . $placeholder . '</label>';
-	// 								} elseif ( $label_exists ) {
-	// 									// Zero-width space
-	// 									$replacement .= '<label>&#8203;</label>';
-	// 								}
-	// 							}
-	// 							$replacement .= '<span class="input">' .
-	// 								htmlspecialchars( $value['inputs'][$i] ) . '</span>';
-	// 							$replacement .= '</div>';
-	// 							$i++;
-	// 							return $replacement;
-	// 						}, $value['label'] ); // preg_replace_callback
-	// 					if ( $section['type'] == 'inputs responsive' ) {
-	// 						$output .= '</div>';
-	// 					}
-	// 					$output .= '</div>';
-	// 				}
-	// 				break;
-	// 			case 'multiple choice':
-	// 				$list_type_ordered = in_array( $section['list-style'], CIForms::$ordered_styles );
-	// 				// --list_style_type
-	// 				$output .= '<' . ( !$list_type_ordered ? 'ul' : 'ol' ) . ' class="ci_form_section_multiple_choice_list" style="list-style:' . $section['list-style'] . '">';
-	// 				foreach ( $section['items'] as $value ) {
-	// 					$label = $value['label'];
-	// 					$ii = -1;
-	// 					$output .= '<li>';
-	// 					// @see https://stackoverflow.com/questions/35200674/special-character-not-showing-in-html2pdf
-	// 					$output .= '<span style="font-family:DejaVu Sans">' .
-	// 						( $value['selected'] ? '&#9745;' : '&#9744;' ) . '</span>&nbsp;';
-	// 					$label =
-	// 						preg_replace_callback( '/\[([^\[\]]*)\]\s*\*?/',
-	// 							static function ( $matches ) use ( $value, &$ii ) {
-	// 								$ii++;
-	// 								return '<span class="input">' .
-	// 									htmlspecialchars( $value['inputs'][$ii] ) . '</span>';
-	// 							}, $label );
-	// 					$output .= $label;
-	// 					$output .= '</li>';
-	// 				}
-	// 				$output .= ( $list_type_ordered ? '</ol>' : '</ul>' );
-	// 				break;
-	// 			case 'cloze test':
-	// 				$output .= '<ol class="ci_form_section_cloze_test_list">';
-	// 				$list_type_ordered = in_array( $section['list-style'], CIForms::$ordered_styles );
-	// 				// --list_style_type
-	// 				$output .= '<' . ( !$list_type_ordered ? 'ul' : 'ol' ) . ' class="ci_form_section_cloze_test_list" style="list-style:' . $section['list-style'] . '">';
-	// 				foreach ( $section['items'] as $value ) {
-	// 					$label = trim( $value['label'] );
-	// 					$example = ( $label[0] == '*' );
-	// 					if ( $example ) {
-	// 						$label = trim( substr( $label, 1 ) );
-	// 						// simply ignore the example line since
-	// 						// the numeration isn't handled correctly by
-	// 						// Dompdf using css counter-increment
-	// 						continue;
-	// 					}
-	// 					$output .= '<li class="ci_form_section_cloze_test_list_question' .
-	// 						( $example ? '_example' : '' ) . '">';
-	// 					$i = 0;
-	// 					$output .= preg_replace_callback( '/\[\s*([^\[\]]*)\s*\]\s*\*?/',
-	// 						static function ( $matches ) use ( &$i, $value, $section, $example ) {
-	// 								$a = $b = null;
-	// 							if ( !empty( $matches[1] ) ) {
-	// 								list( $a, $b ) = preg_split( "/\s*=\s*/", $matches[1] ) + [ null, null ];
-	// 							}
-	// 							$replacement_inner = '';
-	// 							if ( $a || $b ) {
-	// 								$replacement_inner .= '<span class="ci_form_section_cloze_test_list_question_answered">' .
-	// 									( $b ?: $a ) .
-	// 									'</span> ';
-	// 							} else {
-	// 								// '_value' is appended for easy validation
-	// 								$replacement_inner .= htmlspecialchars( $value['inputs'][$i] );
-	// 							}
-	// 							$i++;
-	// 							return $replacement_inner;
-	// 						}, $label );
-	// 				}
-	// 				break;
-	// 		}
-	// 	}
-
-
-
-		//return job
-		//return json_encode($form_values);
+	
+		// Loop through each section
+		foreach ($form_values['sections'] as $section) {
+			$section_title = $section['title'] ?? '';  // Fallback to empty string if not set
+			$section_type = $section['type'] ?? '';    // Fallback to empty string if not set
+	
+			// Switch based on section type
+			switch ($section_type) {
+				case 'inputs':
+				case 'inputs responsive':
+					foreach ($section['items'] as $item) {
+						$item_label = $item['label'] ?? '';
+						$item_inputs = $item['inputs'] ?? '';
+						
+						// Use only the first input if it's an array
+						if (is_array($item_inputs) && !empty($item_inputs)) {
+							$item_inputs = $item_inputs[0];
+						}
+						
+						// Create a unique key for this section and item
+						$key = "{$section_title} - {$item_label}";
+						
+						// Store the item's inputs using the unique key
+						$json_data[$key] = $item_inputs;
+					}
+					break;
+				case 'multiple choice':
+					foreach ($section['items'] as $item) {
+						if (isset($item['selected'])) {
+							$item_label = $item['label'] ?? '';
+							$item_inputs = $item['inputs'] ?? '';
+							
+							// Use only the first input if it's an array
+							if (is_array($item_inputs) && !empty($item_inputs)) {
+								$item_inputs = $item_inputs[0];
+							}
+							
+							// Create a unique key for this section and item
+							$key = "{$section_title} - {$item_label}";
+							
+							// Store the item's inputs using the unique key
+							$json_data[$key] = $item_inputs;
+						}
+					}
+					break;
+				case 'cloze test':
+					foreach ($section['items'] as $item) {
+						$item_label = $item['label'] ?? '';
+						$item_inputs = $item['inputs'] ?? '';
+						
+						// Use only the first input if it's an array
+						if (is_array($item_inputs) && !empty($item_inputs)) {
+							$item_inputs = $item_inputs[0];
+						}
+						
+						// Create a unique key for this section and item
+						$key = "{$section_title} - {$item_label}";
+						
+						// Store the item's inputs using the unique key
+						$json_data[$key] = $item_inputs;
+					}
+					break;
+			}
+		}
+		
 		return json_encode($json_data);
-		//return $form_result;
 	}
+
+	public function createFlatJson($form_values, $userID, $username) {
+		$json_data = array();
+		
+		// Adding user information and title to the top-level array
+		if (!empty($form_values['form_values']['title'])) {
+			$json_data['title'] = $form_values['form_values']['title'];
+			$json_data['pagename'] = $form_values['form_values']['pagename'];
+			$json_data['pageid'] = $form_values['form_values']['pageid'];
+			$json_data['userID'] = $userID;
+			$json_data['username'] = $username;
+		}
+	
+		// Loop through each section
+		foreach ($form_values['sections'] as $section) {
+			$section_title = $section['title'] ?? '';  // Fallback to empty string if not set
+			$section_type = $section['type'] ?? '';    // Fallback to empty string if not set
+	
+			// Loop through each item in the section
+			foreach ($section['items'] as $item) {
+				$item_label = $item['label'] ?? '';  // Fallback to empty string if not set
+				$item_inputs = $item['inputs'] ?? ''; // Fallback to empty string if not set
+				
+				// Create a unique key for this section and item
+				$key = "{$section_title}_{$item_label}";
+				
+				// Store the item's inputs using the unique key
+				$json_data[$key] = $item_inputs;
+			}
+		}
+		
+		return json_encode($json_data);
+	}
+
 
 	protected function updateDBsecondtable( $tablename) {
 		// get database connection
