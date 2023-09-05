@@ -786,6 +786,8 @@ class CIFormsSubmit extends SpecialPage {
 			$json_data['pageid'] = $form_values['form_values']['pageid'];
 			$json_data['userID'] = $userID;
 			$json_data['username'] = $username;
+			$json_data['timestamp'] = date('c');  // 'c' ISO-8601-Format
+
 		}
 	
 		// Loop through each section
