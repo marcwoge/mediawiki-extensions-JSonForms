@@ -827,10 +827,10 @@ class CIFormsSubmit extends SpecialPage {
 							}
 							
 							// Create a unique key for this section and item
-							$key = "{$section_title} - {$item_label}";
+							$key = "{$section_title}";
 							
 							// Store the item's inputs using the unique key
-							$json_data[$key] = $item_inputs;
+							$json_data[$key] = "{$item_label} {$item_inputs}";
 						}
 					}
 					break;
