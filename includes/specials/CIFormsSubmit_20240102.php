@@ -61,7 +61,6 @@ class CIFormsSubmit extends SpecialPage {
 		global $wgPasswordSender;
 		global $wgSitename;
 		global $wgCIFormsSecondTable;
-		global $wgCIFormsApacheNifiUrl; 
 		if ( empty( $wgCIFormsSenderEmail ) ) {
 			$senderEmail = $wgPasswordSender;
 			$senderName = $wgPasswordSenderName;
@@ -111,7 +110,18 @@ class CIFormsSubmit extends SpecialPage {
 			$form_result['form_values']['title'],
 			Title::newFromText( $form_result['form_values']['pagename'] )->getFullURL()
 		);
-
+		// grap some Userinformation like Name and Email
+		// try {echo {$user->getEmail()}} catch (Exception $e ) {"no Userinformation avalable"} 
+		//if ($user->isAnon()) {
+		//	$absender = "einem nicht angemeldeten Benutzer gesendet.";
+		//} else {
+		//	$absender = "Benutzername: " . $user->getName();
+		//	if ($user->getEmail() !== '') {
+		//		$absender .= " mit der E-Mail-Adresse: " . $user->getEmail() . " gesendet.";
+		//	} else {
+		//		$absender .= " ohne Emailadresse gesendet";
+		//	}
+		//}
 
 		$message_body .= "<br /><br /><br /> " . $this->createMailerText( $form_result, $username, date( 'Y-m-d H:i:s' ) ) . "<br /><br /><br /> " . $this->msg( 'ci-forms-credits' ); //This Line is edited with additional Userinformation in Try mode
 		$attachment = $this->createPDF( $form_result, $username, date( 'Y-m-d H:i:s' ) );
@@ -174,48 +184,11 @@ class CIFormsSubmit extends SpecialPage {
 			}
 			
 		}
-    //END of additional CODE for second SQL Table
 
-		// Send Data to Apache Nifi if Nifi-URL is set		
-		if (isset($GLOBALS['wgCIFormsApacheNifiUrl'])) {
-			$nifiUrl = $GLOBALS['wgCIFormsApacheNifiUrl'];
-		
-			// Create Json
-			$json = $this->createJson($form_result, $userID, $username);
-		
-			// Initialize cURL session
-			$ch = curl_init();
-		
-			// Set cURL options
-			curl_setopt($ch, CURLOPT_URL, $nifiUrl); //$nifiUrl
-			curl_setopt($ch, CURLOPT_POST, true);
-			curl_setopt($ch, CURLOPT_POSTFIELDS, $json);
-			curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type:application/json'));
-			curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-		
-			// Execute cURL session
-			$response = curl_exec($ch);
-		
-			// Check for cURL errors
-			if (curl_errno($ch)) {
-				// Handle error scenario
-				$error_msg = curl_error($ch);
-				// Log or handle the error message
-				echo 'cURL Error: ' . curl_error($ch);
-			} else {
-				// Print response
-				echo 'Response: ' . $response;
-			}
-		
-			// Close cURL session
-			curl_close($ch);
-		
-			// Optional: Handle the response if needed
-		}
-    
-		//END of additional CODE for push http POST
-    
-    
+
+
+
+		//END of additional CODE for second SQL Table
 		$this->exit( $out, $this->exit_message( $form_result, $row_inserted, true, $result_success, $success ), $form_result['form_values'], $success );
 	}
 
@@ -880,7 +853,7 @@ class CIFormsSubmit extends SpecialPage {
 					break;
 			}
 		}
-
+		
 		return json_encode($json_data);
 	}
 
@@ -896,7 +869,7 @@ class CIFormsSubmit extends SpecialPage {
 				id INT AUTO_INCREMENT PRIMARY KEY,
 				page_id INT,
 				title VARCHAR(255),
-				data MEDIUMTEXT,
+				data BLOB,
 				user_id varchar(45),
 				user_name VARCHAR(255),
 				form_name VARCHAR(255),

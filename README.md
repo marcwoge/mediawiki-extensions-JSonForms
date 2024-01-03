@@ -12,6 +12,14 @@ All forms include automatic validation, are optionally protected by the latest v
 
 Please check https://www.mediawiki.org/wiki/Extension:CIForms for the official documentation.
 
+# Localsettings
+
+##Email Form CIForms
+wfLoadExtension( 'CIForms' );
+$wgEnableEmail = 'true';
+$wgCIFormsSecondTable = 'CIForms_submissions_Json';
+$wgCIFormsApacheNifiUrl = 'http://192.168.1.53:8082/Wiki-Forms';
+
 # Install
 CIForms should already been installed. 
 actually you only need to use the /includes/specials/CIFormsSubmit.php and replace it.
@@ -30,3 +38,4 @@ If a user is logged on and the profile provides an emailadresse the form is mail
 ## Form Data in the Email body
 The submittet Form generates a pdf. This sound stupid, because you have to open it bevore you can see whats inside and if its that what you are looking for. 
 I took the content of the pdf to the email body (not very well formated, because CSS is missing).
+

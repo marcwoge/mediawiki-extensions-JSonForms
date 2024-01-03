@@ -61,7 +61,6 @@ class CIFormsSubmit extends SpecialPage {
 		global $wgPasswordSender;
 		global $wgSitename;
 		global $wgCIFormsSecondTable;
-		global $wgCIFormsApacheNifiUrl; 
 		if ( empty( $wgCIFormsSenderEmail ) ) {
 			$senderEmail = $wgPasswordSender;
 			$senderName = $wgPasswordSenderName;
@@ -174,48 +173,7 @@ class CIFormsSubmit extends SpecialPage {
 			}
 			
 		}
-    //END of additional CODE for second SQL Table
-
-		// Send Data to Apache Nifi if Nifi-URL is set		
-		if (isset($GLOBALS['wgCIFormsApacheNifiUrl'])) {
-			$nifiUrl = $GLOBALS['wgCIFormsApacheNifiUrl'];
-		
-			// Create Json
-			$json = $this->createJson($form_result, $userID, $username);
-		
-			// Initialize cURL session
-			$ch = curl_init();
-		
-			// Set cURL options
-			curl_setopt($ch, CURLOPT_URL, $nifiUrl); //$nifiUrl
-			curl_setopt($ch, CURLOPT_POST, true);
-			curl_setopt($ch, CURLOPT_POSTFIELDS, $json);
-			curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type:application/json'));
-			curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-		
-			// Execute cURL session
-			$response = curl_exec($ch);
-		
-			// Check for cURL errors
-			if (curl_errno($ch)) {
-				// Handle error scenario
-				$error_msg = curl_error($ch);
-				// Log or handle the error message
-				echo 'cURL Error: ' . curl_error($ch);
-			} else {
-				// Print response
-				echo 'Response: ' . $response;
-			}
-		
-			// Close cURL session
-			curl_close($ch);
-		
-			// Optional: Handle the response if needed
-		}
-    
-		//END of additional CODE for push http POST
-    
-    
+		//END of additional CODE for second SQL Table
 		$this->exit( $out, $this->exit_message( $form_result, $row_inserted, true, $result_success, $success ), $form_result['form_values'], $success );
 	}
 
@@ -803,87 +761,98 @@ class CIFormsSubmit extends SpecialPage {
 	 */
 	public function createJson( $form_values, $userID, $username ) {
 		
-		// Create array with data
-		$json_data = array();
-    
-		// Adding user information and title to the top-level array
-		if (!empty($form_values['form_values']['title'])) {
-			$json_data['title'] = $form_values['form_values']['title'];
+		//create Array with data -> json
+	 	$json_data = array();
+	 	//Title
+	 	if ( !empty( $form_values['form_values']['title'] ) ) {
+	 		$json_data['title'] = $form_values['form_values']['title'];
 			$json_data['pagename'] = $form_values['form_values']['pagename'];
 			$json_data['pageid'] = $form_values['form_values']['pageid'];
 			$json_data['userID'] = $userID;
 			$json_data['username'] = $username;
-			$json_data['created'] = date('c');  // 'c' ISO-8601-Format
-
-		}
-	
-		// Loop through each section
-		foreach ($form_values['sections'] as $section) {
-			$section_title = $section['title'] ?? '';  // Fallback to empty string if not set
-			$section_type = $section['type'] ?? '';    // Fallback to empty string if not set
-	
-			// Switch based on section type
-			switch ($section_type) {
-				case 'inputs':
-				case 'inputs responsive':
-					foreach ($section['items'] as $item) {
-						$item_label = $item['label'] ?? '';
-						$item_inputs = $item['inputs'] ?? '';
-						
-						// Use only the first input if it's an array
-						if (is_array($item_inputs) && !empty($item_inputs)) {
-							$item_inputs = $item_inputs[0];
-						}
-						
-						// Create a unique key for this section and item
-						$key = "{$section_title} - {$item_label}";
-						
-						// Store the item's inputs using the unique key
-						$json_data[$key] = $item_inputs;
-					}
-					break;
-				case 'multiple choice':
-					foreach ($section['items'] as $item) {
-						if (isset($item['selected'])) {
-							$item_label = $item['label'] ?? '';
-							$item_inputs = $item['inputs'] ?? '';
-							
-							// Use only the first input if it's an array
-							if (is_array($item_inputs) && !empty($item_inputs)) {
-								$item_inputs = $item_inputs[0];
+	 	}
+		
+	 	//sections create Array inside of json_data for sections
+	 	$json_data['sections'] = array();
+		
+	 	//for every section do, Items are always inside a section
+     	foreach ($form_values['sections'] as $key => $section) {
+	 	//foreach ( $sections as $key => $section ) {
+		//foreach ( $form_values['form_values'] as $key => $section ) {	
+			$section_data = array();
+	 		if ( !empty( $section['title'] ) ) {
+	 			$section_data['title'] = $section['title'];
+	 			}
+				//write type
+				 $section_data['type'] = $section['type'];
+				//Items
+				$section_data['items'] = array();
+				// Select Items in cases
+		 		switch ( $section['type'] ) {
+					case 'inputs':
+						// taking relevant fields from Inputs
+						foreach($section['items'] as $item) {
+							$item_data = array();
+							if (isset($item['label'])) {
+								$item_data['label'] = $item['label'];
 							}
-							
-							// Create a unique key for this section and item
-							$key = "{$section_title}";
-							
-							// Store the item's inputs using the unique key
-							$json_data[$key] = "{$item_label} {$item_inputs}";
+							if (isset($item['inputs'])) {
+								$item_data['inputs'] = $item['inputs'];
+							}
+							array_push($section_data['items'], $item_data);
 						}
-					}
 					break;
-				case 'cloze test':
-					foreach ($section['items'] as $item) {
-						$item_label = $item['label'] ?? '';
-						$item_inputs = $item['inputs'] ?? '';
-						
-						// Use only the first input if it's an array
-						if (is_array($item_inputs) && !empty($item_inputs)) {
-							$item_inputs = $item_inputs[0];
+					case 'inputs responsive':
+						// taking relevant fields from input responsive
+						foreach($section['items'] as $item) {
+							$item_data = array();
+							if (isset($item['label'])) {
+								$item_data['label'] = $item['label'];
+							}
+							if (isset($item['inputs'])) {
+								$item_data['inputs'] = $item['inputs'];
+							}
+							array_push($section_data['items'], $item_data);
 						}
-						
-						// Create a unique key for this section and item
-						$key = "{$section_title} - {$item_label}";
-						
-						// Store the item's inputs using the unique key
-						$json_data[$key] = $item_inputs;
-					}
 					break;
-			}
+					case 'multiple choice':
+						//extract multiple choice inputs
+						foreach($section['items'] as $item) {
+							$item_data = array();
+							// only use selected Items
+							if (isset($item['selected'])) {
+								if (isset($item['label'])) {
+									$item_data['label'] = $item['label'];
+								}
+								if (isset($item['inputs'])) {
+									$item_data['inputs'] = $item['inputs'];
+								}
+								array_push($section_data['items'], $item_data);
+							}
+						}
+					break;
+					case 'cloze test':
+						//extract Cloze inputs
+						foreach($section['items'] as $item) {
+							$item_data = array();
+							if (isset($item['label'])) {
+								$item_data['label'] = $item['label'];
+							}
+							if (isset($item['inputs'])) {
+								$item_data['inputs'] = $item['inputs'];
+							}
+							array_push($section_data['items'], $item_data);
+						}
+					break;
+
+				}
+			// Add $section_data to $json_data['sections']
+			array_push($json_data['sections'], $section_data);
+
 		}
 
 		return json_encode($json_data);
 	}
-
 
 	protected function updateDBsecondtable( $tablename) {
 		// get database connection
