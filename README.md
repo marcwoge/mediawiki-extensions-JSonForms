@@ -12,3 +12,13 @@ All forms include automatic validation, are optionally protected by the latest v
 
 Please check https://www.mediawiki.org/wiki/Extension:CIForms for the official documentation.
 
+# Localsettings
+
+##Email Form CIForms
+wfLoadExtension( 'CIForms' );
+$wgEnableEmail = 'true';
+$wgCIFormsSecondTable = 'CIForms_submissions_Json';
+$wgCIFormsApacheNifiUrl = 'http://192.168.1.53:8082/Wiki-Forms';
+
+
+
