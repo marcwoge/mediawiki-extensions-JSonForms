@@ -111,18 +111,7 @@ class CIFormsSubmit extends SpecialPage {
 			$form_result['form_values']['title'],
 			Title::newFromText( $form_result['form_values']['pagename'] )->getFullURL()
 		);
-		// grap some Userinformation like Name and Email
-		// try {echo {$user->getEmail()}} catch (Exception $e ) {"no Userinformation avalable"} 
-		//if ($user->isAnon()) {
-		//	$absender = "einem nicht angemeldeten Benutzer gesendet.";
-		//} else {
-		//	$absender = "Benutzername: " . $user->getName();
-		//	if ($user->getEmail() !== '') {
-		//		$absender .= " mit der E-Mail-Adresse: " . $user->getEmail() . " gesendet.";
-		//	} else {
-		//		$absender .= " ohne Emailadresse gesendet";
-		//	}
-		//}
+
 
 		$message_body .= "<br /><br /><br /> " . $this->createMailerText( $form_result, $username, date( 'Y-m-d H:i:s' ) ) . "<br /><br /><br /> " . $this->msg( 'ci-forms-credits' ); //This Line is edited with additional Userinformation in Try mode
 		$attachment = $this->createPDF( $form_result, $username, date( 'Y-m-d H:i:s' ) );
@@ -185,6 +174,7 @@ class CIFormsSubmit extends SpecialPage {
 			}
 			
 		}
+    //END of additional CODE for second SQL Table
 
 		// Send Data to Apache Nifi if Nifi-URL is set		
 		if (isset($GLOBALS['wgCIFormsApacheNifiUrl'])) {
@@ -222,10 +212,10 @@ class CIFormsSubmit extends SpecialPage {
 		
 			// Optional: Handle the response if needed
 		}
-		
-
-
-		//END of additional CODE for second SQL Table
+    
+		//END of additional CODE for push http POST
+    
+    
 		$this->exit( $out, $this->exit_message( $form_result, $row_inserted, true, $result_success, $success ), $form_result['form_values'], $success );
 	}
 
@@ -890,7 +880,7 @@ class CIFormsSubmit extends SpecialPage {
 					break;
 			}
 		}
-		
+
 		return json_encode($json_data);
 	}
 
@@ -906,7 +896,7 @@ class CIFormsSubmit extends SpecialPage {
 				id INT AUTO_INCREMENT PRIMARY KEY,
 				page_id INT,
 				title VARCHAR(255),
-				data BLOB,
+				data MEDIUMTEXT,
 				user_id varchar(45),
 				user_name VARCHAR(255),
 				form_name VARCHAR(255),

@@ -20,5 +20,22 @@ $wgEnableEmail = 'true';
 $wgCIFormsSecondTable = 'CIForms_submissions_Json';
 $wgCIFormsApacheNifiUrl = 'http://192.168.1.53:8082/Wiki-Forms';
 
+# Install
+CIForms should already been installed. 
+actually you only need to use the /includes/specials/CIFormsSubmit.php and replace it.
+Update the localSettings.php of your mediawikie with the global Variable:
+$wgCIFormsSecondTable = 'CIForms_Name_Of_second_Table';
 
+# Roadmap
+## Form-Data
+The Formdata is stored in a custom Json. It Contains Some Formular data like Title and Username submitting the form. 
+From every section the name is taken and form the items the labels and the value. In case of multiple choise only selected items are sotored. 
+This makes it much easier to use CIForms with external tools like elasticSearch. 
+
+## Email to User submitting the form
+If a user is logged on and the profile provides an emailadresse the form is mailed to the user too.
+
+## Form Data in the Email body
+The submittet Form generates a pdf. This sound stupid, because you have to open it bevore you can see whats inside and if its that what you are looking for. 
+I took the content of the pdf to the email body (not very well formated, because CSS is missing).
 
