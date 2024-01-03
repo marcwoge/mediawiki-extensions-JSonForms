@@ -61,7 +61,6 @@ class CIFormsSubmit extends SpecialPage {
 		global $wgPasswordSender;
 		global $wgSitename;
 		global $wgCIFormsSecondTable;
-		global $wgCIFormsApacheNifiUrl; 
 		if ( empty( $wgCIFormsSenderEmail ) ) {
 			$senderEmail = $wgPasswordSender;
 			$senderName = $wgPasswordSenderName;
@@ -186,43 +185,7 @@ class CIFormsSubmit extends SpecialPage {
 			
 		}
 
-		// Send Data to Apache Nifi if Nifi-URL is set		
-		if (isset($GLOBALS['wgCIFormsApacheNifiUrl'])) {
-			$nifiUrl = $GLOBALS['wgCIFormsApacheNifiUrl'];
-		
-			// Create Json
-			$json = $this->createJson($form_result, $userID, $username);
-		
-			// Initialize cURL session
-			$ch = curl_init();
-		
-			// Set cURL options
-			curl_setopt($ch, CURLOPT_URL, $nifiUrl); //$nifiUrl
-			curl_setopt($ch, CURLOPT_POST, true);
-			curl_setopt($ch, CURLOPT_POSTFIELDS, $json);
-			curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type:application/json'));
-			curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-		
-			// Execute cURL session
-			$response = curl_exec($ch);
-		
-			// Check for cURL errors
-			if (curl_errno($ch)) {
-				// Handle error scenario
-				$error_msg = curl_error($ch);
-				// Log or handle the error message
-				echo 'cURL Error: ' . curl_error($ch);
-			} else {
-				// Print response
-				echo 'Response: ' . $response;
-			}
-		
-			// Close cURL session
-			curl_close($ch);
-		
-			// Optional: Handle the response if needed
-		}
-		
+
 
 
 		//END of additional CODE for second SQL Table
