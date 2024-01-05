@@ -29,7 +29,6 @@ if ( is_readable( __DIR__ . '/../../vendor/autoload.php' ) ) {
 
 class CIFormsSubmit extends SpecialPage {
 	private $dbType;
-	private $just_insertedID = null; //Var for ID of the Formdata as return from writing SQL
 
 	public function __construct() {
 		// not listed in the special pages index
@@ -91,9 +90,6 @@ class CIFormsSubmit extends SpecialPage {
 		$dbr = wfGetDB( DB_REPLICA );
 		$this->dbType = $dbr->getType();
 		$row_inserted = $this->storeSubmission( $form_result, $username );
-		//Catch last ID inserted into DB
-		$this->just_insertedID = $this->getLastInsertedId();
-
 		$formSubmit = self::mergeGlobal( 'email-to', $form_result['form_values'], $isLocal );
 		// legacy
 		if ( empty( $formSubmit ) ) {
@@ -115,7 +111,18 @@ class CIFormsSubmit extends SpecialPage {
 			$form_result['form_values']['title'],
 			Title::newFromText( $form_result['form_values']['pagename'] )->getFullURL()
 		);
-
+		// grap some Userinformation like Name and Email
+		// try {echo {$user->getEmail()}} catch (Exception $e ) {"no Userinformation avalable"} 
+		//if ($user->isAnon()) {
+		//	$absender = "einem nicht angemeldeten Benutzer gesendet.";
+		//} else {
+		//	$absender = "Benutzername: " . $user->getName();
+		//	if ($user->getEmail() !== '') {
+		//		$absender .= " mit der E-Mail-Adresse: " . $user->getEmail() . " gesendet.";
+		//	} else {
+		//		$absender .= " ohne Emailadresse gesendet";
+		//	}
+		//}
 
 		$message_body .= "<br /><br /><br /> " . $this->createMailerText( $form_result, $username, date( 'Y-m-d H:i:s' ) ) . "<br /><br /><br /> " . $this->msg( 'ci-forms-credits' ); //This Line is edited with additional Userinformation in Try mode
 		$attachment = $this->createPDF( $form_result, $username, date( 'Y-m-d H:i:s' ) );
@@ -171,15 +178,13 @@ class CIFormsSubmit extends SpecialPage {
 						'user_id' => $this->getUser()->getId(),
 						'user_name' => $this->getUser()->getName(),
 						'form_name' => $form_result['form_values']['pagename'],
-						'timestamp' => wfTimestampNow(),
-						'entry_number' => $this->just_insertedID
+						'timestamp' => wfTimestampNow()
 					]
 				);
 
 			}
 			
 		}
-    //END of additional CODE for second SQL Table
 
 		// Send Data to Apache Nifi if Nifi-URL is set		
 		if (isset($GLOBALS['wgCIFormsApacheNifiUrl'])) {
@@ -217,10 +222,10 @@ class CIFormsSubmit extends SpecialPage {
 		
 			// Optional: Handle the response if needed
 		}
-    
-		//END of additional CODE for push http POST
-    
-    
+		
+
+
+		//END of additional CODE for second SQL Table
 		$this->exit( $out, $this->exit_message( $form_result, $row_inserted, true, $result_success, $success ), $form_result['form_values'], $success );
 	}
 
@@ -247,7 +252,6 @@ class CIFormsSubmit extends SpecialPage {
 			$this->sqlReplace( 'CIForms_submissions' ),
 			$update_obj
 		);
-
 		$SubmissionGroups = self::mergeGlobal( 'data-access', $form_result['form_values'], $isLocal );
 		if ( empty( $SubmissionGroups ) ) {
 			$SubmissionGroups = self::mergeGlobal( 'submission-groups', $form_result['form_values'], $isLocal );
@@ -279,7 +283,6 @@ class CIFormsSubmit extends SpecialPage {
 					__METHOD__,
 					[ 'ORDER BY' => 'id DESC' ]
 				);
-
 				foreach ( $groups as $value ) {
 					$row_inserted_ = $dbr->insert(
 						$this->sqlReplace( 'CIForms_submissions_groups' ),
@@ -809,7 +812,6 @@ class CIFormsSubmit extends SpecialPage {
 	 * @return string
 	 */
 	public function createJson( $form_values, $userID, $username ) {
-		global $wgServer, $wgScriptPath;
 		
 		// Create array with data
 		$json_data = array();
@@ -822,17 +824,7 @@ class CIFormsSubmit extends SpecialPage {
 			$json_data['userID'] = $userID;
 			$json_data['username'] = $username;
 			$json_data['created'] = date('c');  // 'c' ISO-8601-Format
-			$json_data['entryID'] = $this->just_insertedID;
 
-			// Generate URL
-			$specialPageURL = wfAppendQuery(
-				$wgServer . $wgScriptPath . '/index.php',
-				[
-					'title' => 'Spezial:CIFormsManage',
-					'download' => $this->just_insertedID
-				]
-			);
-			$json_data['entryURL'] = $specialPageURL;
 		}
 	
 		// Loop through each section
@@ -898,7 +890,7 @@ class CIFormsSubmit extends SpecialPage {
 					break;
 			}
 		}
-
+		
 		return json_encode($json_data);
 	}
 
@@ -914,12 +906,11 @@ class CIFormsSubmit extends SpecialPage {
 				id INT AUTO_INCREMENT PRIMARY KEY,
 				page_id INT,
 				title VARCHAR(255),
-				data MEDIUMTEXT,
+				data BLOB,
 				user_id varchar(45),
 				user_name VARCHAR(255),
 				form_name VARCHAR(255),
-				timestamp datetime,
-				entry_number INT
+				timestamp datetime
 			)" );
 			// if table creation failed, return false
 			if(!$createResult ) {
@@ -930,11 +921,6 @@ class CIFormsSubmit extends SpecialPage {
 		// if table exists or was created successfully, return true
 		wfDebugLog( 'DBTable', "Table $additional_table created or already exists" );
 		return true;
-	}
-
-	private function getLastInsertedId() {
-		$dbw = wfGetDB( DB_MASTER );
-		return $dbw->insertId();
 	}
 
 }
