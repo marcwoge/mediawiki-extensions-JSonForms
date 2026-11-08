@@ -26,15 +26,6 @@ $( document ).ready( function () {
 
 	var currentSection = {};
 
-	function escape( s ) {
-		return String( s )
-			.replace( /&/g, '\x26' )
-			.replace( /'/g, '\x27' )
-			.replace( /"/g, '\x22' )
-			.replace( /</g, '\x3C' )
-			.replace( />/g, '\x3E' );
-	}
-
 	var site_key = mw.config.get( 'ci_forms_google_recaptcha_site_key' );
 
 	mw.loader
@@ -322,7 +313,7 @@ $( document ).ready( function () {
 							alert(
 								msg2
 									.replace( '$1', minNumber )
-									.replace( '$2', escape( question_name ) )
+									.replace( '$2', String( question_name ) )
 							);
 							preventSubmit = true;
 							return false;
@@ -339,7 +330,7 @@ $( document ).ready( function () {
 								alert(
 									msg2
 										.replace( '$1', min_answers )
-										.replace( '$2', escape( question_name ) )
+										.replace( '$2', String( question_name ) )
 								);
 								preventSubmit = true;
 								return false;
